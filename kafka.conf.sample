@@ -1,0 +1,10 @@
+[general]
+;bootstrap.servers=
+
+
+[consumer]
+;group.id=
+
+
+[producer]
+;linger.ms=
