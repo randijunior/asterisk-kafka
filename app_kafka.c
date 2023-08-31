@@ -17,16 +17,6 @@ static volatile sig_atomic_t run = 1;
 
 static pthread_t rk_thraed = AST_PTHREADT_NULL;
 
-static void *rk_poll(void *data) {
-    rd_kafka_t **rk;
-    if (!(rk = ast_threadstorage_get(&producer_instance, sizeof(*rk))))
-    {
-        ast_log(LOG_ERROR, "Cannot get producer structure\n");
-        return -1;
-    }
-    while (run && rd_kafka_outq_len(*rk) > 0) { rd_kafka_poll(*rk, 100); }
-}
-
 static void msg_delivered_cb(rd_kafka_t *rkproducer, const rd_kafka_message_t *rkmessage, void *opaque)
 {
     if (rkmessage->err)
@@ -35,9 +25,10 @@ static void msg_delivered_cb(rd_kafka_t *rkproducer, const rd_kafka_message_t *r
     }
     else
     {
+        char *msg = (char*) rkmessage->payload;
         ast_log(LOG_DEBUG, "(RdKafka): Message delivery sucess (payload: %s)\n"
                            "(partition %d" PRId32 ")\n",
-                (char *)rkmessage->payload, rkmessage->partition);
+                msg, rkmessage->partition);
     }
 }
 
@@ -153,23 +144,50 @@ static int kafka_producer_exec(struct ast_channel *chan, const char *vargs)
     return 0;
 }
 
-int load_module(void)
-{
-    int res = 0;
-
-    res |= ast_register_application("ProduceToKafka", kafka_producer_exec, "todo", "todo");
-
-
-    return res;
+static void *rk_poll(void *data) {
+    rd_kafka_t **rk;
+    if (!(rk = ast_threadstorage_get(&producer_instance, sizeof(*rk))))
+    {
+        ast_log(LOG_ERROR, "Cannot get producer structure\n");
+        return NULL;
+    }
+    while (run) {
+    if(rd_kafka_outq_len(*rk) > 0) {
+        ast_log(LOG_DEBUG, "POOLING");
+        rd_kafka_poll(*rk, 10 * 1000); 
+    }
+}
+return NULL;
 }
 
 int unload_module(void)
 {
     int res = 0;
 
+    run = 0;
+
+    if(rk_thraed != AST_PTHREADT_NULL) {
+        pthread_kill(rk_thraed, SIGURG);
+        pthread_join(rk_thraed, NULL);
+    }
+
     res |= ast_unregister_application("ProduceToKafka");
 
-    run = 0;
+    return res;
+}
+
+int load_module(void)
+{
+    int res = 0;
+
+    if(ast_pthread_create_background(&rk_thraed, NULL, rk_poll, NULL) > 0) {
+        ast_log(LOG_ERROR, "FAILED TO CREATE THREAD");
+        unload_module();
+        return AST_MODULE_LOAD_DECLINE;
+    }
+
+    res |= ast_register_application("ProduceToKafka", kafka_producer_exec, "todo", "todo");
+
 
     return res;
 }

@@ -1,7 +1,4 @@
 GCC_BIN = 				gcc
-CARGO_BIN = 			cargo
-CRATE_DIR = 			http
-BINDGEN_BIN = 			cbindgen
 ASTERISK_DIR = 			/usr/src/asterisk-18.18.1
 ASTERISK_MODULE_DIR = 	/usr/lib/asterisk/modules
 SHARED_LIB = 			app_kafka.so
