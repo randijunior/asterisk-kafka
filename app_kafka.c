@@ -70,7 +70,7 @@ static void rd_kafka_instance_destroy(void *data) {
     rd_kafka_destroy(*rk);
 }
 
-AST_THREADSTORAGE_CUSTOM(producer_instance, rd_kafka_instance_init, rd_kafka_instance_destroy);
+AST_THREADSTORAGE_CUSTOM(producer_instance, rd_kafka_instance_init, rd_kafka_instance_destroy)
 
 static int kafka_producer_exec(struct ast_channel *chan, const char *vargs) {
     char *data;
