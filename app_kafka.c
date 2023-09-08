@@ -2,11 +2,10 @@
 #define AST_MODULE "app_kafka"
 #endif
 #define AST_MODULE_SELF_SYM __internal_my_module_self
+
 #include "asterisk.h"
 
 
-
-#include <librdkafka/rdkafka.h>
 #include "asterisk/app.h"
 #include "asterisk/config.h"
 #include "asterisk/linkedlists.h"
@@ -14,6 +13,8 @@
 #include "asterisk/logger.h"
 #include "asterisk/module.h"
 #include "asterisk/pbx.h"
+
+#include <librdkafka/rdkafka.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -21,11 +22,32 @@ AST_MUTEX_DEFINE_STATIC(rk_lock);
 
 static rd_kafka_t *rk;
 
+static pthread_t rk_p_thread = AST_PTHREADT_NULL;
+
+static volatile sig_atomic_t run_pooling = 1;
+
+static void *producer_polling_thread(void *data) {
+    ast_log(LOG_DEBUG, "Producer polling thread started...");
+    while (run_pooling) {
+        int events = rd_kafka_poll(rk, 1000);
+
+        if (events == 0 && !run_pooling) {
+            break;
+        } else {
+            ast_log(LOG_DEBUG, "Received %d events\n", events);
+        }
+    }
+    ast_log(LOG_DEBUG, "Producer polling thread stoped...");
+    return NULL;
+}
+
 static void msg_dr_cb(rd_kafka_t *rkproducer, const rd_kafka_message_t *rkmessage, void *opaque) {
     if (rkmessage->err) {
-        ast_log(LOG_ERROR, "(RdKafka) Failed to delivery message: %s\n", rd_kafka_err2str(rkmessage->err));
+        ast_log(LOG_ERROR, "(RdKafka) Failed to delivery message: %s\n",
+                rd_kafka_err2str(rkmessage->err));
     } else {
         char *msg = (char *)rkmessage->payload;
+
         ast_log(LOG_DEBUG,
                 "(RdKafka) Message delivery sucess (payload: %s)\n"
                 "(partition %d" PRId32 ")\n",
@@ -39,6 +61,9 @@ static void error_cb(rd_kafka_t *rk, int err, const char *reason, void *opaque) 
 
 static void logger(const rd_kafka_t *r, int level, const char *fac, const char *buf) {
     ast_log(LOG_DEBUG, "(RdKafka) %i %s %s\n", level, fac, buf);
+}
+
+static rd_kafka_t *create_producer(const char *brokers) {
 }
 
 static int rd_kafka_instance_init() {
@@ -70,7 +95,6 @@ static int rd_kafka_instance_init() {
         return 1;
     }
 
-
     ast_mutex_lock(&rk_lock);
     rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
     if (!rk) {
@@ -79,21 +103,38 @@ static int rd_kafka_instance_init() {
                 errstr);
         return 1;
     }
-    rd_kafka_poll(rk, 0);
     ast_mutex_unlock(&rk_lock);
+
+    if (ast_pthread_create_background(&rk_p_thread, NULL, producer_polling_thread, NULL)) {
+        ast_log(LOG_ERROR, "Can'not start producer pooling thread");
+        rd_kafka_instance_destroy();
+        return 1;
+    }
 
     return 0;
 }
 
-static void rd_kafka_instance_destroy() {
-    ast_log(LOG_DEBUG, "Flushing messages...");
-    ast_mutex_lock(&rk_lock);
-    rd_kafka_flush(rk, 1000);
-    rd_kafka_destroy(rk);
-    ast_mutex_unlock(&rk_lock);
+static void stop_pooling() {
+    run_pooling = 0;
+    if (rk_p_thread != AST_PTHREADT_NULL) {
+        pthread_kill(rk_p_thread, SIGURG);
+        pthread_join(rk_p_thread, NULL);
+
+        rk_p_thread = AST_PTHREADT_NULL;
+    }
 }
 
-AST_THREADSTORAGE_CUSTOM(producer_instance, rd_kafka_instance_init, rd_kafka_instance_destroy)
+static void rd_kafka_instance_destroy() {
+    stop_pooling();
+    ast_log(LOG_DEBUG, "Flushing messages...");
+
+    ast_mutex_lock(&rk_lock);
+
+    rd_kafka_flush(rk, 5 * 1000);
+    rd_kafka_destroy(rk);
+
+    ast_mutex_unlock(&rk_lock);
+}
 
 static int kafka_producer_exec(struct ast_channel *chan, const char *vargs) {
     char *data;
@@ -120,12 +161,11 @@ static int kafka_producer_exec(struct ast_channel *chan, const char *vargs) {
     }
     ast_mutex_lock(&rk_lock);
 
-    err = rd_kafka_producev(rk,
-                            RD_KAFKA_V_TOPIC(args.topic),
-                            RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
-                            RD_KAFKA_V_VALUE(args.msg, strlen(args.msg)),
-                            RD_KAFKA_V_OPAQUE(NULL),
-                            RD_KAFKA_V_END);
+    err = rd_kafka_producev(
+        rk, RD_KAFKA_V_TOPIC(args.topic),
+        RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+        RD_KAFKA_V_VALUE(args.msg, strlen(args.msg)),
+        RD_KAFKA_V_END);
 
     if (err) {
         ast_log(LOG_ERROR, "FAILED TO DELIVERY MESSAGE %s\n", rd_kafka_err2str(err));
@@ -148,7 +188,7 @@ int load_module(void) {
     int res = 0;
 
     res |= rd_kafka_instance_init();
-    res |= ast_register_application("ProduceToKafka", kafka_producer_exec, "todo", "todo");
+    res |= ast_register_application("ProduceTo", kafka_producer_exec, "todo", "todo");
 
     return res;
 }
@@ -158,7 +198,7 @@ int unload_module(void) {
 
     rd_kafka_instance_destroy();
 
-    res |= ast_unregister_application("ProduceToKafka");
+    res |= ast_unregister_application("ProduceTo");
 
     return res;
 }
