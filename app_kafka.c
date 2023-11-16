@@ -116,7 +116,7 @@ static volatile sig_atomic_t run_pooling = 1;
 static const char* default_topic = NULL;
 
 static void *producer_polling_thread(void *data) {
-    ast_log(LOG_DEBUG, "Producer polling thread started...");
+    ast_log(LOG_DEBUG, "Producer polling thread started...\n");
     while (run_pooling) {
         int events = rd_kafka_poll(rk, 1000);
 
@@ -124,7 +124,7 @@ static void *producer_polling_thread(void *data) {
             break;
         }
     }
-    ast_log(LOG_DEBUG, "Producer polling thread stoped...");
+    ast_log(LOG_DEBUG, "Producer polling thread stoped...\n");
     return NULL;
 }
 
@@ -258,7 +258,7 @@ static void stop_pooling() {
 
 static void rd_kafka_instance_destroy() {
     stop_pooling();
-    ast_log(LOG_DEBUG, "Flushing messages...");
+    ast_log(LOG_DEBUG, "Flushing messages...\n");
 
     ast_mutex_lock(&rk_lock);
 
@@ -287,7 +287,9 @@ static int kafka_producer_exec(struct ast_channel *chan, const char *vargs) {
     }
     AST_STANDARD_APP_ARGS(args, data);
 
-    if (ast_strlen_zero(args.topic) && ast_strlen_zero(default_topic)) {
+    int topic_not_provided = ast_strlen_zero(args.topic) && ast_strlen_zero(default_topic);
+
+    if (topic_not_provided) {
         ast_log(LOG_WARNING, "Not topic provided");
         return -1;
     }
@@ -299,8 +301,10 @@ static int kafka_producer_exec(struct ast_channel *chan, const char *vargs) {
     }
     ast_mutex_lock(&rk_lock);
 
+    const char* topic = ast_strlen_zero(args.topic) ? default_topic : args.topic;
+
     err = rd_kafka_producev(
-        rk, RD_KAFKA_V_TOPIC(ast_strlen_zero(args.topic) ? default_topic : args.topic),
+        rk, RD_KAFKA_V_TOPIC(topic),
         RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
         RD_KAFKA_V_KEY(args.key, strlen(args.key)),
         RD_KAFKA_V_VALUE(args.msg, strlen(args.msg)),
