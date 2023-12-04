@@ -35,6 +35,10 @@ static int load_config(const char *arr[], unsigned int size, rd_kafka_conf_t *co
 enum general {
     BOOTSTRAP_SERVERS,
     CLIENT_ID,
+    LOG_CONNECTION_CLOSE,
+    SOCKET_TIMEOUT_MS,
+    SOCKET_CONNECTION_SETUP_TIMEOUT_MS,
+
 
     MESSAGE_MAX_BYTES,
     MESSAGE_COPY_MAX_BYTES,
@@ -73,6 +77,9 @@ enum topic {
 static const char *general_conf_arr[] = {
     [BOOTSTRAP_SERVERS] = "bootstrap.servers",
     [CLIENT_ID] = "client.id",
+    [LOG_CONNECTION_CLOSE] = "log.connection.close",
+    [SOCKET_TIMEOUT_MS] = "socket.timeout.ms",
+    [SOCKET_CONNECTION_SETUP_TIMEOUT_MS] = "socket.connection.setup.timeout.ms",
     [MESSAGE_MAX_BYTES] = "message.max.bytes",
     [MESSAGE_COPY_MAX_BYTES] = "message.copy.max.bytes",
     [RECEIVE_MESSAGE_MAX_BYTES] = "receive.message.max.bytes",
@@ -83,7 +90,7 @@ static const char *general_conf_arr[] = {
     [RECONNECT_BACKOFF_MS] = "reconnect.backoff.ms",
     [RECONNECT_BACKOFF_MAX_MS] = "reconnect.backoff.max.ms",
     [ALLOW_AUTO_CREATE_TOPIC] = "allow.auto.create.topics",
-    [CLIENT_RACK] = "client.rack"
+    [CLIENT_RACK] = "client.rack",
 };
 
 
@@ -116,7 +123,7 @@ static volatile sig_atomic_t run_pooling = 1;
 static const char* default_topic = NULL;
 
 static void *producer_polling_thread(void *data) {
-    ast_log(LOG_DEBUG, "Producer polling thread started...\n");
+    ast_debug(3, "Producer polling thread started...\n");
     while (run_pooling) {
         int events = rd_kafka_poll(rk, 1000);
 
@@ -124,7 +131,7 @@ static void *producer_polling_thread(void *data) {
             break;
         }
     }
-    ast_log(LOG_DEBUG, "Producer polling thread stoped...\n");
+    ast_debug(3, "Producer polling thread stoped...\n");
     return NULL;
 }
 
@@ -134,7 +141,7 @@ static void msg_dr_cb(rd_kafka_t *rkproducer, const rd_kafka_message_t *rkmessag
                 rd_kafka_err2str(rkmessage->err));
     } else {
 
-        ast_log(LOG_DEBUG,
+        ast_debug(3,
                 "Message delivery sucess (payload: %.*s)\n"
                 "(partition %d" PRId32 ")\n",
                 (int)rkmessage->len, (const char *)rkmessage->payload, rkmessage->partition);
@@ -146,7 +153,7 @@ static void error_cb(rd_kafka_t *rk, int err, const char *reason, void *opaque) 
 }
 
 static void logger(const rd_kafka_t *r, int level, const char *fac, const char *buf) {
-    ast_log(LOG_DEBUG, "%i %s %s\n", level, fac, buf);
+    ast_debug(3, "%i %s %s\n", level, fac, buf);
 }
 
 static int read_config_file(rd_kafka_conf_t *conf) {
@@ -171,7 +178,7 @@ static int read_config_file(rd_kafka_conf_t *conf) {
         return 1;
     }
 
-    ast_log(LOG_NOTICE, "All config loaded and configuraded with success!\n");
+    ast_debug(3, "All config loaded and configuraded with success!\n");
 
     return 0;
 
@@ -232,11 +239,11 @@ static int load_config(const char *arr[], unsigned int size, rd_kafka_conf_t *co
             continue;
         }
         if(!strcmp(arr[index], producer_conf_arr[TOPIC])) {
-            ast_log(LOG_DEBUG, "Setting default topic %s\n", config);
+            ast_debug(3,"Setting default topic %s\n", config);
             default_topic = config;
             continue;
         }
-        ast_log(LOG_DEBUG, "Setting config %s with value %s\n", arr[index], config);
+        ast_debug(3, "Setting config %s with value %s\n", arr[index], config);
         if (define_rd_kafka_conf(conf, arr[index], config)) {
             ast_log(LOG_ERROR, "Error on define conf. Aborting.\n");
             return 1;
@@ -258,7 +265,7 @@ static void stop_pooling() {
 
 static void rd_kafka_instance_destroy() {
     stop_pooling();
-    ast_log(LOG_DEBUG, "Flushing messages...\n");
+    ast_debug(3, "Flushing messages...\n");
 
     ast_mutex_lock(&rk_lock);
 
@@ -294,14 +301,14 @@ static int kafka_producer_exec(struct ast_channel *chan, const char *vargs) {
         return -1;
     }
 
-    ast_log(LOG_NOTICE, "should send message: %s with key: %s, to topic: %s", args.msg, args.key, args.topic);
-
     if (chan) {
         ast_autoservice_start(chan);
     }
     ast_mutex_lock(&rk_lock);
 
     const char* topic = ast_strlen_zero(args.topic) ? default_topic : args.topic;
+
+    ast_debug(1, "sending message: \"%s\" with key: \"%s\", to topic: \"%s\"", args.msg, args.key, topic);
 
     err = rd_kafka_producev(
         rk, RD_KAFKA_V_TOPIC(topic),
@@ -313,10 +320,9 @@ static int kafka_producer_exec(struct ast_channel *chan, const char *vargs) {
     if (err) {
         ast_log(LOG_ERROR, "FAILED TO DELIVERY MESSAGE %s\n", rd_kafka_err2str(err));
     } else {
-        ast_log(LOG_NOTICE, "Enqueued message: %s\n", args.msg);
+        ast_debug(3, "Enqueued message: %s\n", args.msg);
     }
 
-    rd_kafka_poll(rk, 5 * 1000);
 
     ast_mutex_unlock(&rk_lock);
 

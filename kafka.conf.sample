@@ -12,7 +12,22 @@
 
 ;client.id=                                 ; Identificador desse cliente, padrão: rdkafa
 
+;log.connection.close=                      ; Ativa o log de desconexão com o broker
+
 ;-----------------------------------AVANÇADO-----------------------------------
+;socket.timeout.ms=                         ; Tempo limite padrão para solicitações de rede.
+                                            ; minimo:10, máximo: 300000, padrão: 60000
+
+;socket.connection.setup.timeout.ms=        ; Tempo máximo permitido para setup da conexão com o broker
+                                            ; (conexão TCP, handshake SSL e SASL). Se a conexão com o
+                                            ; broker não estiver totalmente funcional depois desse tempo
+                                            ; a conexão será encerrada e tentada novamente.
+                                            ; minimo:1000, máximo: 2147483647, padrão: 30.000
+
+;broker.address.family=                     ; Família de endereços IP do broker permitidas
+                                            ; Valores possíveis: any, v4, v6
+                                            ; Padrão: any             
+
 ;message.max.bytes=                         ; Tamanho máximo da mensagem na requisição do protocolo kafka em bytes 
                                             ; minimo:1000, máximo: 1000000000, padrão: 1000000
 
