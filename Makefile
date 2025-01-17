@@ -1,16 +1,25 @@
 GCC_BIN = 				gcc
-ASTERISK_SRC_DIR = 		/usr/src/asterisk-17.5.0
-ASTERISK_DIR =			/usr/lib/asterisk
-SHARED_LIB = 			app_kafka.so
+ASTERISK_LIB_DIR =		/usr/lib/asterisk
+ASTERISK_SRC_DIR =		$(ASTERISK_DIR)
+ASTERISK_BIN	=		/usr/sbin/asterisk
 
+ifeq ($(ASTERISK_SRC_DIR),)
+ASTERISK_SRC_DIR = /usr/src/asterisk-18.18.1
+endif
 
 clean:
-	rm -f app_kafka.so
+	rm -f res_producer.so res_consumer.so
 
 
-build:
-	$(GCC_BIN) -shared -o $(SHARED_LIB) -fPIC app_kafka.c -lrdkafka -I$(ASTERISK_SRC_DIR)/include -L$(ASTERISK_DIR) -Wl,-rpath=$(ASTERISK_DIR)
+build-producer:
+	$(info Using asterisk headers on $(ASTERISK_SRC_DIR))
+	$(GCC_BIN) -shared -o ../bin/res_producer.so -fPIC producer.c config.c -lrdkafka -I$(ASTERISK_SRC_DIR)/include -L$(ASTERISK_SRC_DIR)
 
+build-consumer:
+	$(info Using asterisk headers on $(ASTERISK_SRC_DIR))
+	$(GCC_BIN) -shared -o ../bin/res_consumer.so -fPIC consumer.c config.c -lrdkafka -I$(ASTERISK_SRC_DIR)/include -L$(ASTERISK_SRC_DIR)
 
 install:
-	cp $(SHARED_LIB) $(ASTERISK_DIR)/modules
+	$(ASTERISK_BIN) -rx 'module unload res_producer.so' > /dev/null 2>&1
+	$(ASTERISK_BIN) -rx 'module unload res_consumer.so' > /dev/null 2>&1
+	cp bin/*.so $(ASTERISK_LIB_DIR)/modules

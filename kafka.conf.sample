@@ -1,177 +1,185 @@
 
 ;
-; Arquivo de configuração do módulo kafka
-; Caso não seja atribuido nenhum valor o padrão será usado
+; Kafka module configuration file
+; If no value is assigned, the default will be used
 ;
 [general]
 ;
-; Configuração geral se aplica ao producer e consumer
+; General configuration applies to both producer and consumer
 ;
-;-----------------------------------BÁSICO-----------------------------------
-;bootstrap.servers=                         ; Lista de brokers separados por vírgula no padrão host:porta
+;-----------------------------------BASIC-----------------------------------
+;bootstrap.servers=                         ; List of brokers separated by commas in the format host:port
 
-;client.id=                                 ; Identificador desse cliente, padrão: rdkafa
+;client.id=                                 ; Identifier for this client, default: rdkafka
 
-;log.connection.close=                      ; Ativa o log de desconexão com o broker
+;log.connection.close=                      ; Enables logging of disconnection from the broker
 
-;-----------------------------------AVANÇADO-----------------------------------
-;socket.timeout.ms=                         ; Tempo limite padrão para solicitações de rede.
-                                            ; minimo:10, máximo: 300000, padrão: 60000
+;-----------------------------------ADVANCED-----------------------------------
+;socket.timeout.ms=                         ; Default timeout for network requests.
+                                            ; minimum:10, maximum: 300000, default: 60000
 
-;socket.connection.setup.timeout.ms=        ; Tempo máximo permitido para setup da conexão com o broker
-                                            ; (conexão TCP, handshake SSL e SASL). Se a conexão com o
-                                            ; broker não estiver totalmente funcional depois desse tempo
-                                            ; a conexão será encerrada e tentada novamente.
-                                            ; minimo:1000, máximo: 2147483647, padrão: 30.000
+;socket.connection.setup.timeout.ms=        ; Maximum allowed time for connection setup with the broker
+                                            ; (TCP connection, SSL, and SASL handshake). If the connection
+                                            ; with the broker is not fully functional after this time,
+                                            ; the connection will be closed and retried.
+                                            ; minimum:1000, maximum: 2147483647, default: 30000
 
-;broker.address.family=                     ; Família de endereços IP do broker permitidas
-                                            ; Valores possíveis: any, v4, v6
-                                            ; Padrão: any             
+;broker.address.family=                     ; Allowed IP address family for the broker
+                                            ; Possible values: any, v4, v6
+                                            ; Default: any             
 
-;message.max.bytes=                         ; Tamanho máximo da mensagem na requisição do protocolo kafka em bytes 
-                                            ; minimo:1000, máximo: 1000000000, padrão: 1000000
+;message.max.bytes=                         ; Maximum message size in the Kafka protocol request in bytes 
+                                            ; minimum:1000, maximum: 1000000000, default: 1000000
 
-;message.copy.max.bytes=                    ; Tamanho máximo das mensagens a serem copiadas para o buffer
-                                            ; minimo:0, máximo: 1000000000, padrão: 65535
+;message.copy.max.bytes=                    ; Maximum size of messages to be copied to the buffer
+                                            ; minimum:0, maximum: 1000000000, default: 65535
 
-;receive.message.max.bytes=                 ; Tamanho máximo da mensagem na resposta do protocolo kafka em bytes, 
-                                            ; isso serve como uma precaução segura para evitar esgotamento da memória
-                                            ; em caso de problemas de protocolo, 
-                                            ; esse valor deve ser pelo menos fetch.max.bytes + 512
-                                            ; o valor é ajustado automaticamente, a menos que a propriedade de 
-                                            ; configuração seja definida explicitamente
-                                            ; minimo:1000, máximo: 2147483647, padrão: 100000000
+;receive.message.max.bytes=                 ; Maximum message size in the Kafka protocol response in bytes,
+                                            ; this serves as a safety precaution to avoid memory exhaustion
+                                            ; in case of protocol issues,
+                                            ; this value should be at least fetch.max.bytes + 512
+                                            ; the value is automatically adjusted unless the configuration
+                                            ; property is explicitly set
+                                            ; minimum:1000, maximum: 2147483647, default: 100000000
 
-;max.in.flight=                             ; Número máximo de solicitações em andamento por conexão com o broker 
-                                            ; Esta propriedade genérica se aplica a todas comunicações com o boker
-                                            ; no entanto é primariamente relevante para produzir requisições
-                                            ; minimo:1000, máximo: 2147483647, padrão: 100000000
+;max.in.flight=                             ; Maximum number of in-flight requests per connection to the broker 
+                                            ; This generic property applies to all communications with the broker
+                                            ; but is primarily relevant for producing requests
+                                            ; minimum:1000, maximum: 2147483647, default: 100000000
 
-;topic.metadata.propagation.max.ms=         ; A criação do tópico no apache kafka é assíncrono e leva algum tempo
-                                            ; para que um novo tópico se propague por todo o cluster para todos os brokers.
-                                            ; Se um cliente solicitar metadados do tópico após a criação manual do tópico,
-                                            ; mas antes que o tópico tenha sido totalmente propagado para o broker do qual
-                                            ; o cliente está solicitando metadados, o tópico parecerá inexistente e o cliente
-                                            ; marcará o tópico como tal, falhando nas mensagens produzidas enfileiradas com
-                                            ; ERR__UNKNOWN_TOPIC. Essa configuração atrasa a marcação de um tópico
-                                            ; como inexistente até que o tempo máximo de propagação configurado tenha
-                                            ; passado. O tempo máximo de propagação é calculado a partir do momento em que
-                                            ; o tópico é referenciado pela primeira vez no cliente, por exemplo, no produce()
+;topic.metadata.propagation.max.ms=         ; Topic creation in Apache Kafka is asynchronous and takes some time
+                                            ; for a new topic to propagate throughout the cluster to all brokers.
+                                            ; If a client requests topic metadata after manual topic creation,
+                                            ; but before the topic has fully propagated to the broker from which
+                                            ; the client is requesting metadata, the topic will appear nonexistent
+                                            ; and the client will mark the topic as such, failing enqueued produced
+                                            ; messages with ERR__UNKNOWN_TOPIC. This configuration delays marking a topic
+                                            ; as nonexistent until the configured maximum propagation time has
+                                            ; passed. The maximum propagation time is calculated from the moment
+                                            ; the topic is first referenced in the client, e.g., in produce()
 
-;topic.blacklist=                           ; Lista negra de tópcos, uma lista separada por vírgulas de expressões regulares
-                                            ; para nomes de tópicos correspondentes que devem ser ignorados na informação de
-                                            ; metadados do broker como se os tópicos não existissem
+;topic.blacklist=                           ; Blacklist of topics, a comma-separated list of regular expressions
+                                            ; for matching topic names that should be ignored in the broker's metadata
+                                            ; information as if the topics did not exist
 
-;debug=                                     ; Uma lista separada por vírgulas de contextos de depuração a serem habilitados.
-                                            ; Exemplo: Depuração detalhada para
+;debug=                                     ; A comma-separated list of debug contexts to be enabled.
+                                            ; Example: Detailed debugging for
                                             ; Producer=broker,topic,msg
                                             ; Consumer=consumer,cgrp,topic,fetch
 
-;reconnect.backoff.ms=                      ; O tempo inicial de espera antes de se reconectar a um broker após a conexão ter
-                                            ; sido perdida. O tempo é aumentado exponencialmente até reconnect.backoff.max.ms
-                                            ; ser alcançado. -25% para +50% jitter é aplicado para cada reconnect backoff.
-                                            ; Um valor 0 desabilita o backoff e reconnecta imediatamente
-                                            ; minimo:0, máximo: 3600000, padrão: 100
+;reconnect.backoff.ms=                      ; Initial wait time before reconnecting to a broker after the connection
+                                            ; has been lost. The time is exponentially increased until reconnect.backoff.max.ms
+                                            ; is reached. -25% to +50% jitter is applied to each reconnect backoff.
+                                            ; A value of 0 disables the backoff and reconnects immediately
+                                            ; minimum:0, maximum: 3600000, default: 100
 
-;reconnect.backoff.max.ms=                  ; O tempo máximo de espera antes de se reconectar a um broker depois que a conexão
-                                            ; for perdida.
-                                            ; minimo:0, máximo: 3600000, padrão: 10.000.
+;reconnect.backoff.max.ms=                  ; Maximum wait time before reconnecting to a broker after the connection
+                                            ; has been lost.
+                                            ; minimum:0, maximum: 3600000, default: 10000.
 
-;allow.auto.create.topics=                  ; Permite criação automática do tópico no broker ao assinar a tópicos inexistentes. O
-                                            ; broker também deve ser configurado auto.create.topics.enable=true para que essa
-                                            ; configuração entre em vigor
-                                            ; Valores possíveis: true, false, padrão: false
+;allow.auto.create.topics=                  ; Allows automatic topic creation on the broker when subscribing to nonexistent topics.
+                                            ; The broker must also be configured with auto.create.topics.enable=true for this
+                                            ; configuration to take effect
+                                            ; Possible values: true, false, default: false
 
-;client.rack=                               ; Um identificador de rack para esse cliente. Isso pode ser qualquer string que indica
-                                            ; onde o cliente está localizado físicamente. Corresponde à configuração do broker
-                                            ; broker.rack
-                                            ; Valores possíveis: qualquer string
+;client.rack=                               ; A rack identifier for this client. This can be any string indicating
+                                            ; where the client is physically located. Corresponds to the broker's
+                                            ; broker.rack configuration
+                                            ; Possible values: any string
 
 
 [producer]
 ;
-; Configuração que se aplica ao producer
+; Configuration that applies to the producer
 ;
-;-----------------------------------BÁSICO-----------------------------------
-;topic=                                     ; Tópico padrão que será utilizado para o envio de mensagens quando não for definido
-                                            ; explicitamente no ProducerSend.
+;-----------------------------------BASIC-----------------------------------
+;topic=                                     ; Default topic to be used for sending messages when not explicitly defined
+                                            ; in ProducerSend.
 
-;enable.idempotence=                        ; Quanto setado para true, o producer garantirá que as mensagens sejam produzidas
-                                            ; com sucesso exatamente uma vez e na ordem de produção original.
-                                            ; Valores possíveis: true, false, padrão: false
+;enable.idempotence=                        ; When set to true, the producer will ensure that messages are produced
+                                            ; successfully exactly once and in the original production order.
+                                            ; Possible values: true, false, default: false
 
-;retries=                                   ; Quantas vezes tentar enviar novamente uma mensagem com falha. Nota: tentar
-                                            ; novamente pode causar reordenamento, a menos que enable.idempotence esteja
-                                            ; definido como true.
+;retries=                                   ; Number of times to retry sending a failed message. Note: retrying
+                                            ; may cause reordering unless enable.idempotence is set to true.
 
-;-----------------------------------AVANÇADO-----------------------------------
-;batch.size=                                ; Tamanho máximo (em bytes) de todas as mensagens agrupadas em um MessageSet.
-                                            ; Este limite é aplicado após a primeira mensagem ser adicionada ao lote.
+;-----------------------------------ADVANCED-----------------------------------
+;batch.size=                                ; Maximum size (in bytes) of all messages batched in a MessageSet.
+                                            ; This limit is applied after the first message is added to the batch.
 
-;delivery.report.only.error=                ; Apenas envia relatórios de entrega para mensagens com falha.
+;delivery.report.only.error=                ; Only sends delivery reports for failed messages.
 
-;queue.buffering.max.messages=              ; Número máximo de mensagens permitidas na fila do producer.Essa fila é compartilhada por
-                                            ; todos os tópicos e partições. Um valor 0 desativa esse limite.
-                                            ; minimo:0, máximo: 2147483647, padrão: 100.000
+;queue.buffering.max.messages=              ; Maximum number of messages allowed in the producer's queue. This queue is shared by
+                                            ; all topics and partitions. A value of 0 disables this limit.
+                                            ; minimum:0, maximum: 2147483647, default: 100000
 
-;queue.buffering.max.kbytes=                ; Soma máxima do tamanho total de mensagens permitida na fila do producer. 
-                                            ; Essa fila é compartilhada por todos os tópicos e partições. 
-                                            ; Um valor 0 desativa esse limite. Esta propriedade tem prioridade mais alta que 
+;queue.buffering.max.kbytes=                ; Maximum total size of messages allowed in the producer's queue.
+                                            ; This queue is shared by all topics and partitions.
+                                            ; A value of 0 disables this limit. This property has higher priority than
                                             ; queue.buffering.max.messages.
-                                            ; minimo:1, máximo: 2147483647, padrão: 1048576
+                                            ; minimum:1, maximum: 2147483647, default: 1048576
 
-;linger.ms=                                 ; Delay em milisegundos para esperar que as mensagens na fila do producer se
-                                            ; acumulem antes de construir lotes de mensagens para transmitir aos brokers.
-                                            ; Um valor mais alto permite que lotes de mensagens maiors e mais eficazes
-                                            ; (menos sobrecarga, compactação aprimorada) sejam acumulados às custas de
-                                            ; maior latência de entrega de mensagens.
-                                            ; minimo:0, máximo: 900.000, padrão: 5
+;linger.ms=                                 ; Delay in milliseconds to wait for messages in the producer's queue to
+                                            ; accumulate before constructing message batches to transmit to brokers.
+                                            ; A higher value allows larger and more efficient message batches
+                                            ; (less overhead, improved compression) to be accumulated at the cost of
+                                            ; higher message delivery latency.
+                                            ; minimum:0, maximum: 900000, default: 5
 
 
 
 [topic]
-;-----------------------------------BÁSICO-----------------------------------
-;message.timeout.ms=                        ; Tempo limite local da mensagem. Esse valor é apenas aplicado localmente e limita
-                                            ; o tempo que uma mensagem produzida aguarda pela entrega bem-sucedida. Um tempo de
-                                            ; 0 é infinito. Esse é o tempo máximo que o librdkafa pode usar para entregar uma
-                                            ; mensagem(incluindo retries). O erro de entrega ocorre quando a contagem de novas
-                                            ; tentativas ou o tempo limite da mensagem são excedidos.
-                                            ; minimo:0, máximo: 2147483647, padrão: 300000
+;-----------------------------------BASIC-----------------------------------
+;message.timeout.ms=                        ; Local message timeout. This value is only applied locally and limits
+                                            ; the time a produced message waits for successful delivery. A time of
+                                            ; 0 is infinite. This is the maximum time that librdkafka can use to deliver a
+                                            ; message (including retries). Delivery failure occurs when the retry count
+                                            ; or message timeout is exceeded.
+                                            ; minimum:0, maximum: 2147483647, default: 300000
 
 
-;partitioner=                               ; Particionador: 
-                                            ; random - distribuição aleatória, consistent- hash da key
-                                            ; CRC32(keys NULL e vazias são mapeadas para uma partição única),
+;partitioner=                               ; Partitioner:
+                                            ; random - random distribution, consistent - hash of the key
+                                            ; CRC32 (NULL and empty keys are mapped to a single partition),
                                             ;
-                                            ; consistent_random - hash da key CRC32(keys NULL e vazias são particionadas
-                                            ; aleatoriamente),
-                                            ; 
-                                            ; murmur2 - hash da key Murmur2 a mesma utilizada pelo Java Producer
-                                            ; (keys NULL e vazias são mapeadas para uma partição única),
+                                            ; consistent_random - hash of the key CRC32 (NULL and empty keys are partitioned
+                                            ; randomly),
                                             ;
-                                            ; murmur2_random - hash da key Murmur2 a mesma utilizada pelo Java Producer
-                                            ; (keys NULL e vazias são particionadas aleatoriamente. Isso é funcionalmente 
-                                            ; equivalente ao particionador padrão no Java Producer),
+                                            ; murmur2 - hash of the key Murmur2, the same used by the Java Producer
+                                            ; (NULL and empty keys are mapped to a single partition),
                                             ;
-                                            ; fnv1a - hash da key FNV-1a(keys NULL e vazias são mapeadas para uma 
-                                            ;         partição única)
+                                            ; murmur2_random - hash of the key Murmur2, the same used by the Java Producer
+                                            ; (NULL and empty keys are partitioned randomly. This is functionally
+                                            ; equivalent to the default partitioner in the Java Producer),
                                             ;
-                                            ; fnv1a_random - hash da key FNV-1a(keys NULL e vazias são particionadas
-                                            ; aleatoriamente)
+                                            ; fnv1a - hash of the key FNV-1a (NULL and empty keys are mapped to a
+                                            ;         single partition)
                                             ;
-                                            ; Valores possíveis: random, consistent_random, murmur2, murmur2_random, fnv1a,
+                                            ; fnv1a_random - hash of the key FNV-1a (NULL and empty keys are partitioned
+                                            ; randomly)
+                                            ;
+                                            ; Possible values: random, consistent_random, murmur2, murmur2_random, fnv1a,
                                             ;                    fnv1a_random.
                                             ;
-                                            ; Padrão: consistent_random
+                                            ; Default: consistent_random
 
-;-----------------------------------AVANÇADO-----------------------------------
-;compression.type=                          ; Codec de compactação a ser usado para compactar conjuntos de mensagens(MessageSet).
-                                            ; Valores possíveis: none, gzip, snappy, lz4, zstd.
-                                            ; Padrão: none
+;-----------------------------------ADVANCED-----------------------------------
+;compression.type=                          ; Compression codec to be used for compressing message sets (MessageSet).
+                                            ; Possible values: none, gzip, snappy, lz4, zstd.
+                                            ; Default: none
 
-;compression.level=                         ; Parâmetro de nível de compactação para o algoritimo selecionado pela
-                                            ; propriedade compression.codec. Valores mais altos resultarão em melhor
-                                            ; compactação ao custo de mais uso da CPU. O intervalo utilizável depende 
-                                            ; do algoritmo: [0-9] para gzip; [0-12] para lz4; apenas 0 para snappy; 
-                                            ; [-1] = nível de compactação padrão dependente do codec.
-                                            ; minimo:-1, máximo: 12, padrão: -1
+;compression.level=                         ; Compression level parameter for the algorithm selected by the
+                                            ; compression.codec property. Higher values result in better
+                                            ; compression at the cost of more CPU usage. The usable range depends
+                                            ; on the algorithm: [0-9] for gzip; [0-12] for lz4; only 0 for snappy;
+                                            ; [-1] = codec-dependent default compression level.
+                                            ; minimum:-1, maximum: 12, default: -1
+
+[consumer]
+;
+; Configuration that applies to the consumer
+;
+
+;topic=
+
+;group.id=central.asterisk
